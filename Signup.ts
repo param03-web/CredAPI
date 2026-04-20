@@ -1,10 +1,12 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-zosale-signup',
-  imports: [RouterLink],
+  standalone: true,
+  imports: [RouterLink, FormsModule, ReactiveFormsModule],
   templateUrl: './zosale-signup.html',
   styleUrl: './zosale-signup.css',
 })
@@ -19,16 +21,17 @@ this.showPassword=!this.showPassword;
   email: string = '';
   password: string = '';
 
-  private apiUrl = 'http://127.0.0.1:8000/signup';
+  private apiUrl = 'http://localhost:8000/signup';
 
   constructor(private http: HttpClient) {}
 
-  signup() {
+  signup() {debugger;
     const payload = {
       username: this.username,
       email: this.email,
       password: this.password
     };
+    console.log('Payload:', payload);
 
     this.http.post(this.apiUrl, payload).subscribe({
       next: (response) => {
