@@ -1,20 +1,39 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
 from passlib.context import CryptContext
 from jose import jwt
 
-DATABASE_URL = "postgresql://postgres:Param@@123@localhost:5432/mydb"
+# ---------------- CONFIG ----------------
+DATABASE_URL = "postgresql://postgres:Param%40%40123@localhost:5432/mydb"
 SECRET_KEY = "mysecretkey"
 ALGORITHM = "HS256"
 
+# ---------------- APP ----------------
+app = FastAPI()
+
+# ✅ CORS (ONLY ONCE, AFTER app creation)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:4200"],  # Angular app
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---------------- DATABASE ----------------
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
+
+
+# ---------------- SECURITY ----------------
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# ---------------- MODELS ----------------
 class User(Base):
     __tablename__ = "users"
     
@@ -32,9 +51,10 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
-app = FastAPI()
 
+    Base.metadata.create_all(bind=engine)
 
+# ---------------- HELPERS ----------------
 def hash_password(password: str):
     return pwd_context.hash(password)
 
@@ -47,23 +67,28 @@ def create_token(data: dict):
 def decode_token(token: str):
     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
-
+# ---------------- ROUTES ----------------
 @app.post("/signup")
 def signup(user: UserCreate):
-    db = SessionLocal()
-    
-    hashed_pw = hash_password(user.password)
-    
-    new_user = User(
-        username=user.username,
-        email=user.email,
-        password=hashed_pw
-    )
-    
-    db.add(new_user)
-    db.commit()
-    
-    return {"message": "User created successfully"}
+    try:
+        db = SessionLocal()
+
+        hashed_pw = hash_password(user.password)   # ✅ CALL function
+
+        new_user = User(
+            username=user.username,
+            email=user.email,
+            password=hashed_pw
+        )
+
+        db.add(new_user)
+        db.commit()
+
+        return {"message": "User created successfully"}
+
+    except Exception as e:
+        print("ERROR:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/login")
